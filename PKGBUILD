@@ -1,39 +1,48 @@
-# Mantainer: Bruno Galeotti <bgaleotti@gmail.com>
+# Maintainer: James An <james@jamesan.ca>
+# Contributor: Bruno Galeotti <bgaleotti@gmail.com>
+# Forked from https://aur.archlinux.org/php-twig.git on commit 48ff4b1c.
 
-pkgname=php-twig
-pkgver=1.21.2
+pkgname=php-twig-git
+_pkgname=${pkgname%-git}
+__pkgname=${_pkgname#php-}
+__pkgname=${__pkgname^}
+pkgver=1.23.1.r14.gdba78c8
 pkgrel=1
 pkgdesc='PHP Twig extension.'
-url='http://github.com/twigphp/Twig'
+url="http://github.com/twigphp/$__pkgname"
 license='BSD'
 arch=('any')
 depends=('php')
-makedepends=('php')
-source=("https://github.com/twigphp/Twig/tarball/v${pkgver}")
-backup=('etc/php/conf.d/twig.ini')
-sha256sums=('03f7018fc4f41d953d2cbbf56e1fe101fa646dbc833bfdd753b69b6172d22bef')
-_git_commit='df56fa1'
+makedepends=('git')
+provides=("$_pkgname=$pkgver")
+conflicts=("$_pkgname")
+source=("$__pkgname"::"git+https://github.com/twigphp/$__pkgname.git"
+        "${__pkgname,}.ini")
+backup=('etc/php/conf.d/${_pkgname,}.ini')
+md5sums=('SKIP'
+         '060537663d7f7984d07e2855595d3b54')
+
+pkgver() {
+  cd "$__pkgname"
+  (
+    set -o pipefail
+    git describe --long --tag | sed -r 's/([^-]*-g)/r\1/;s/-/./g;s/^v//' ||
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  )
+}
 
 build() {
-  msg "Starting build"
-  workdir=$srcdir/twigphp-Twig-${_git_commit}
-  cd $workdir/ext/twig
+  cd "$__pkgname/ext/${__pkgname,}"
 
-  msg "Running phpize"
   phpize
-  ./configure --prefix=/usr --enable-twig
+  ./configure --prefix=/usr "--enable-${__pkgname,}"
   make
 }
 
 package() {
-  mkdir -p "$pkgdir"/{/usr/lib/php/modules,/etc/php/conf.d}
+  cd "$__pkgname"
 
-  echo "extension=twig.so" > "twig.ini"
-
-  workdir=$srcdir/twigphp-Twig-${_git_commit}
-  install -D -m755 ${workdir}/ext/twig/modules/twig.so ${pkgdir}/usr/lib/php/modules/twig.so
-  install -D -m644 twig.ini ${pkgdir}/etc/php/conf.d/twig.ini
-  install -D -m644 ${workdir}/LICENSE ${pkgdir}/usr/share/licenses/twig/LICENSE
+  install -Dm755 "../${__pkgname,}.ini" "$pkgdir/etc/php/conf.d/${__pkgname,}.ini"
+  install -Dm755 "ext/${__pkgname,}/modules/${__pkgname,}.so" "$pkgdir/usr/lib/php/modules/${__pkgname,}.so"
+  install -Dm755 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
-
-# vim:set ts=2 sw=2 et:
